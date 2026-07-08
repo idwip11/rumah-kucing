@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, MessageCircle, ShieldCheck } from "lucide-react";
+import { ArrowRight, CalendarClock, Info } from "lucide-react";
 import { CatProfileCard } from "@/components/cat-profile-card";
 import { ProductCard } from "@/components/product-card";
 import { SolutionCard } from "@/components/solution-card";
@@ -17,29 +17,46 @@ export default function DashboardPage() {
               <div>
                 <p className="text-sm font-bold text-primary">Dashboard hari ini</p>
                 <h1 className="mt-3 max-w-xl text-3xl font-bold leading-tight sm:text-4xl">
-                  Apa yang ingin kamu lakukan untuk Mochi?
+                  Pantau kondisi Mochi hari ini
                 </h1>
                 <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-                  Mulai dari cek gejala, belajar perawatan, mencatat momen, sampai belanja
-                  kebutuhan yang relevan dengan kondisi kucing.
+                  Pastikan jadwal dan kebutuhan Mochi terpenuhi agar ia tetap sehat dan aktif.
                 </p>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-md bg-teal-50 p-3 text-teal-900">
-                  <ShieldCheck className="mb-2 h-5 w-5" aria-hidden="true" />
-                  <p className="text-sm font-bold">Triage dulu</p>
-                  <p className="mt-1 text-xs leading-5">Bantu putuskan perlu dokter atau pantau.</p>
+              <div className="mt-6 flex flex-col gap-4">
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                      <Info className="h-4 w-4" />
+                    </div>
+                    <h3 className="font-bold text-sm text-foreground">Sekilas British Shorthair</h3>
+                  </div>
+                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                    Ras ini rentan terhadap obesitas dan penyakit ginjal (PKD). Pastikan asupan air minumnya cukup dan ajak bermain rutin untuk menjaga berat badannya.
+                  </p>
                 </div>
-                <div className="rounded-md bg-rose-50 p-3 text-rose-900">
-                  <MessageCircle className="mb-2 h-5 w-5" aria-hidden="true" />
-                  <p className="text-sm font-bold">Personal</p>
-                  <p className="mt-1 text-xs leading-5">Jawaban mengikuti profil dan riwayat.</p>
-                </div>
-                <div className="rounded-md bg-amber-50 p-3 text-amber-950">
-                  <CalendarClock className="mb-2 h-5 w-5" aria-hidden="true" />
-                  <p className="text-sm font-bold">Tercatat</p>
-                  <p className="mt-1 text-xs leading-5">Vaksin, berat, makanan, dan memori.</p>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                        <CalendarClock className="h-4 w-4" />
+                      </div>
+                      <h3 className="font-bold text-sm text-amber-900">Jadwal Terdekat</h3>
+                    </div>
+                    <span className="rounded-full bg-amber-200 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                      Hari ini, 16:00
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-amber-900">
+                      Vaksinasi Tahunan & Cek Gigi
+                    </p>
+                    <p className="mt-1 text-xs text-amber-700">
+                      Klinik Hewan Sehat (Drh. Sarah)
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>

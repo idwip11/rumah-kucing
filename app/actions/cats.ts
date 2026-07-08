@@ -10,7 +10,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 const CatSchema = z.object({
-  userId: z.string().uuid(),
+  userId: z.string().uuid().optional(),
   breedSlug: z.string().optional(),
   name: z.string().min(1).max(80),
   ageLabel: z.string().max(40).optional(),
@@ -40,7 +40,13 @@ export async function addCat(data: z.infer<typeof CatSchema>) {
   const parsed = CatSchema.safeParse(data);
   if (!parsed.success) throw new Error(parsed.error.message);
 
-  const { userId, breedSlug, ...catData } = parsed.data;
+  let { userId, breedSlug, ...catData } = parsed.data;
+
+  if (!userId) {
+    const demoUser = await prisma.user.findUnique({ where: { email: "imam@example.com" } });
+    if (!demoUser) throw new Error("User not found");
+    userId = demoUser.id;
+  }
 
   let breedId: string | null = null;
   if (breedSlug) {

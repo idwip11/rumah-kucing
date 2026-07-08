@@ -27,6 +27,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     router.push("/login");
   }
 
+  const filteredNavItems = navItems.filter(
+    (item) =>
+      isAuthenticated || !["Dashboard", "Ketty AI", "Timeline"].includes(item.label)
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border bg-background/98 shadow-sm backdrop-blur-md">
@@ -42,7 +47,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex" aria-label="Navigasi utama">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               return (
@@ -98,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="grid grid-cols-5 border-t border-border md:hidden" aria-label="Navigasi mobile">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
             return (

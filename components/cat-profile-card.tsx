@@ -10,6 +10,20 @@ export function CatProfileCard({ compact = false }: { compact?: boolean }) {
   const setActiveCat = useCatStore((state) => state.setActiveCat);
   const activeCat = useCatStore((state) => state.activeCat());
 
+  if (!activeCat) {
+    return (
+      <section className={cn("flex flex-col items-center justify-center rounded-lg border border-border bg-card p-8 text-center shadow-sm", compact && "p-6")}>
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+          <Cat className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+        </div>
+        <h3 className="mt-4 text-lg font-bold">Belum ada profil kucing</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Tambahkan profil kucing pertama kamu untuk mulai memantau kebutuhannya.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <section className={cn("rounded-lg border border-border bg-card p-4 shadow-sm", compact && "p-3")}>
       <div className="flex items-start justify-between gap-4">

@@ -1,15 +1,19 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Check, ChevronRight, Cat, Home, Scale } from "lucide-react";
+import { Check, ChevronRight, Cat, Home, Scale, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCatStore } from "@/store/use-cat-store";
+import { useRouter } from "next/navigation";
+import { addCat as addCatServer } from "@/app/actions/cats";
 
 const steps = ["Identitas", "Kondisi", "Kebiasaan"];
 
 export default function OnboardingPage() {
-  const addCat = useCatStore((state) => state.addCat);
+  const router = useRouter();
+  const addCatLocal = useCatStore((state) => state.addCat);
   const [step, setStep] = useState(0);
+  const [isPending, setIsPending] = useState(false);
   const [form, setForm] = useState({
     name: "Luna",
     breed: "Maine Coon",
@@ -27,24 +31,47 @@ export default function OnboardingPage() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (step < steps.length - 1) {
       setStep((current) => current + 1);
       return;
     }
 
-    addCat({
-      id: form.name.toLowerCase().replace(/\s+/g, "-") || "kucing-baru",
-      name: form.name,
-      breed: form.breed,
-      age: form.age,
-      weight: form.weight,
-      gender: form.gender,
-      sterilized: form.sterilized === "Sudah",
-      lifestyle: form.lifestyle,
-      note: form.note
-    });
+    setIsPending(true);
+    try {
+      // Save to database
+      await addCatServer({
+        name: form.name,
+        breedSlug: form.breed.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
+        ageLabel: form.age,
+        weightKg: parseFloat(form.weight.replace(",", ".")) || undefined,
+        gender: form.gender as "Betina" | "Jantan",
+        sterilized: form.sterilized === "Sudah",
+        lifestyle: form.lifestyle as any,
+        notes: form.note
+      });
+
+      // Update local zustand store for immediate UI update
+      addCatLocal({
+        id: form.name.toLowerCase().replace(/\s+/g, "-") || "kucing-baru",
+        name: form.name,
+        breed: form.breed,
+        age: form.age,
+        weight: form.weight,
+        gender: form.gender,
+        sterilized: form.sterilized === "Sudah",
+        lifestyle: form.lifestyle,
+        note: form.note
+      });
+
+      router.push("/");
+    } catch (error) {
+      console.error(error);
+      alert("Gagal menyimpan profil: " + (error as Error).message);
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -91,7 +118,31 @@ export default function OnboardingPage() {
           {step === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nama kucing" value={form.name} onChange={(value) => updateField("name", value)} icon={Cat} />
-              <Field label="Ras" value={form.breed} onChange={(value) => updateField("breed", value)} icon={Cat} />
+              <Select
+                label="Ras"
+                value={form.breed}
+                options={[
+                  "Persian",
+                  "Maine Coon",
+                  "Ragdoll",
+                  "Norwegian Forest Cat & Siberian",
+                  "Birman (Sacred Birman)",
+                  "British Shorthair",
+                  "American Shorthair",
+                  "Siamese",
+                  "Abyssinian",
+                  "Russian Blue",
+                  "Sphynx",
+                  "Exotic Shorthair",
+                  "Scottish Fold / Straight",
+                  "Munchkin",
+                  "Devon Rex & Cornish Rex",
+                  "Bengal",
+                  "Savannah",
+                  "Domestis / Lokal"
+                ]}
+                onChange={(value) => updateField("breed", value)}
+              />
               <Field label="Umur" value={form.age} onChange={(value) => updateField("age", value)} icon={Home} />
               <Select
                 label="Jenis kelamin"
@@ -142,9 +193,10 @@ export default function OnboardingPage() {
             >
               Kembali
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {step === steps.length - 1 ? "Simpan profil" : "Lanjut"}
-              <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              {!isPending && <ChevronRight className="h-4 w-4" aria-hidden="true" />}
             </Button>
           </div>
         </form>

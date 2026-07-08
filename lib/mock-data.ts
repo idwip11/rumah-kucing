@@ -14,30 +14,7 @@ import {
   Utensils
 } from "lucide-react";
 
-export const cats = [
-  {
-    id: "mochi",
-    name: "Mochi",
-    breed: "British Shorthair",
-    age: "8 bulan",
-    weight: "3.4 kg",
-    gender: "Betina",
-    sterilized: false,
-    lifestyle: "Indoor",
-    note: "Sensitif pada makanan tinggi gandum"
-  },
-  {
-    id: "nori",
-    name: "Nori",
-    breed: "Domestic Shorthair",
-    age: "2 tahun",
-    weight: "4.8 kg",
-    gender: "Jantan",
-    sterilized: true,
-    lifestyle: "Indoor + balkon",
-    note: "Riwayat hairball ringan"
-  }
-];
+
 
 export const solutionActions = [
   {

@@ -13,7 +13,13 @@
 import { PrismaClient, TimelineStatus, TimelineCategory, ChatRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
-const prisma = new PrismaClient();
+import { PrismaPg } from "@prisma/adapter-pg";
+import "dotenv/config";
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL!,
+});
+const prisma = new PrismaClient({ adapter });
 
 // ─────────────────────────────────────────────
 // BREEDS SEED DATA

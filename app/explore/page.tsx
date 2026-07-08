@@ -72,6 +72,12 @@ export default function ExplorePage() {
             Area ini mensimulasikan e-commerce kontekstual: rekomendasi muncul sebagai kelanjutan
             dari edukasi, bukan pop-up.
           </p>
+          <Link href="/explore/products" className="mt-6 inline-block">
+            <Button variant="outline" className="gap-2">
+              Lihat produk lainnya
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </Link>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {recommendedProducts.map((product) => (
