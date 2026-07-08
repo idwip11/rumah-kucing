@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────
+model User {
+  id           String   @id @default(uuid())
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(255)
+  phone        String?  @db.VarChar(30)
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  cats         Cat[]
+  chatMessages ChatMessage[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// CAT BREEDS (master / seed data)
+// ─────────────────────────────────────────────
+model CatBreed {
+  id                String   @id @default(uuid())
+  slug              String   @unique @db.VarChar(80)
+  name              String   @unique @db.VarChar(80)
+  origin            String?  @db.VarChar(80)
+  imageSrc          String?  @map("image_src")
+  profileSummary    String?  @map("profile_summary") @db.Text
+  foodType          String?  @map("food_type") @db.Text
+  kittenPriceLabel  String?  @map("kitten_price_label") @db.VarChar(60)
+  monthlyCareLabel  String?  @map("monthly_care_label") @db.VarChar(60)
+  careLevel         String?  @map("care_level") @db.VarChar(40)
+  availability      String?  @db.VarChar(60)
+  matchLabel        String?  @map("match_label") @db.VarChar(120)
+
+  characteristics   BreedCharacteristic[]
+  cats              Cat[]
+  articles          Article[]
+
+  @@map("cat_breeds")
+}
+
+model BreedCharacteristic {
+  id      String   @id @default(uuid())
+  breedId String   @map("breed_id")
+  label   String   @db.VarChar(80)
+
+  breed   CatBreed @relation(fields: [breedId], references: [id], onDelete: Cascade)
+
+  @@map("breed_characteristics")
+}
+
+// ─────────────────────────────────────────────
+// CATS (user's pet profiles)
+// ─────────────────────────────────────────────
+model Cat {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  breedId    String?   @map("breed_id")
+  name       String    @db.VarChar(80)
+  ageLabel   String?   @map("age_label") @db.VarChar(40)
+  weightKg   Decimal?  @map("weight_kg") @db.Decimal(5, 2)
+  gender     String?   @db.VarChar(10)  // "Betina" | "Jantan"
+  sterilized Boolean   @default(false)
+  lifestyle  String?   @db.VarChar(40)  // "Indoor" | "Outdoor" | "Indoor + balkon" | "Campuran"
+  notes      String?   @db.Text
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  breed          CatBreed?       @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  timelineEvents TimelineEvent[]
+  chatMessages   ChatMessage[]
+
+  @@index([userId])
+  @@map("cats")
+}
+
+// ─────────────────────────────────────────────
+// TIMELINE EVENTS
+// ─────────────────────────────────────────────
+enum TimelineStatus {
+  Mendatang
+  Tercatat
+  Perawatan
+  Memori
+}
+
+enum TimelineCategory {
+  Vaksin
+  Berat_badan   @map("Berat badan")
+  Riwayat_sakit @map("Riwayat sakit")
+  Makanan
+  Momen_foto    @map("Momen foto")
+  Lainnya
+}
+
+model TimelineEvent {
+  id          String           @id @default(uuid())
+  catId       String           @map("cat_id")
+  title       String           @db.VarChar(160)
+  eventDate   DateTime         @map("event_date") @db.Date
+  description String?          @db.Text
+  category    TimelineCategory @default(Lainnya)
+  status      TimelineStatus   @default(Tercatat)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  cat Cat @relation(fields: [catId], references: [id], onDelete: Cascade)
+
+  @@index([catId])
+  @@index([eventDate(sort: Desc)])
+  @@map("timeline_events")
+}
+
+// ─────────────────────────────────────────────
+// PRODUCTS
+// ─────────────────────────────────────────────
+model Product {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(160)
+  category  String?  @db.VarChar(60)
+  priceIdr  Decimal  @map("price_idr") @db.Decimal(12, 2)
+  reason    String?  @db.Text
+  badge     String?  @db.VarChar(60)
+  imageUrl  String?  @map("image_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tags ProductTag[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("products")
+}
+
+model ProductTag {
+  id        String  @id @default(uuid())
+  productId String  @map("product_id")
+  tag       String  @db.VarChar(60)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([tag])
+  @@map("product_tags")
+}
+
+// ─────────────────────────────────────────────
+// ARTICLES
+// ─────────────────────────────────────────────
+model Article {
+  id         String   @id @default(uuid())
+  slug       String   @unique @db.VarChar(160)
+  title      String   @db.VarChar(255)
+  category   String?  @db.VarChar(60)
+  readTime   String?  @map("read_time") @db.VarChar(20)
+  summary    String?  @db.Text
+  heroImage  String?  @map("hero_image")
+  vetWarning String?  @map("vet_warning") @db.Text
+  breedId    String?  @map("breed_id")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  breed      CatBreed?          @relation(fields: [breedId], references: [id], onDelete: SetNull)
+  sections   ArticleSection[]
+  takeaways  ArticleTakeaway[]
+
+  @@map("articles")
+}
+
+model ArticleSection {
+  id        String  @id @default(uuid())
+  articleId String  @map("article_id")
+  heading   String  @db.VarChar(160)
+  body      String  @db.Text
+  sortOrder Int     @default(0) @map("sort_order")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_sections")
+}
+
+model ArticleTakeaway {
+  id        String  @id @default(uuid())
+  articleId String  @map("article_id")
+  point     String  @db.Text
+  sortOrder Int     @default(0) @map("sort_order")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_takeaways")
+}
+
+// ─────────────────────────────────────────────
+// CHAT MESSAGES (Ketty AI history)
+// ─────────────────────────────────────────────
+enum ChatRole {
+  user
+  assistant
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  catId     String?  @map("cat_id")
+  role      ChatRole
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cat  Cat?  @relation(fields: [catId], references: [id], onDelete: SetNull)
+
+  @@index([userId, catId])
+  @@index([createdAt(sort: Desc)])
+  @@map("chat_messages")
+}
