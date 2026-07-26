@@ -3,15 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
+    "dev:admin": "cd admin-panel && npm run dev",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:admin\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test:recommendations": "tsx --test lib/recommendations/*.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "admin:create": "tsx scripts/admin-user.ts create",
+    "admin:reset-password": "tsx scripts/admin-user.ts reset-password"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
@@ -25,10 +30,13 @@
     "dotenv": "^17.4.2",
     "lucide-react": "^0.468.0",
     "next": "^14.2.23",
+    "node-cron": "^4.6.0",
     "pg": "^8.22.0",
     "prisma": "^7.8.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.6.0",
     "zod": "^4.4.3",
     "zustand": "^5.0.2"
@@ -36,10 +44,12 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.2",
+    "@types/node-cron": "^3.0.11",
     "@types/pg": "^8.20.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^8.2.2",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.23",
     "postcss": "^8.4.49",

@@ -1,82 +1,133 @@
-import { HeartHandshake, Search, ShoppingBag } from "lucide-react";
-import { BreedCard } from "@/components/breed-card";
-import { Button } from "@/components/ui/button";
-import { catBreedGuides } from "@/lib/mock-data";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowRight, BookOpen, Database, ShieldCheck } from "lucide-react";
+import {
+  BreedsExplorer,
+  type BreedForCard,
+} from "@/components/breeds-explorer";
+import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/session";
+import type { BreedFavoriteListType } from "@/lib/catpedia/favorites";
 
-export default function BreedsPage() {
+export const metadata: Metadata = {
+  title: "Catpedia: Panduan Ras Kucing | Rumah Kucing",
+  description:
+    "Jelajahi karakter, kebutuhan perawatan, kesehatan, dan gaya hidup berbagai ras kucing di Catpedia Rumah Kucing.",
+};
+
+export default async function BreedsPage() {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const user = await getCurrentUser();
+
+  const [breeds, weeklyViews, favorites] = await Promise.all([
+    prisma.catBreed.findMany({
+      where: { isPublished: true },
+      include: { characteristics: true },
+      orderBy: [{ isFeatured: "desc" }, { name: "asc" }],
+    }),
+    prisma.breedView.groupBy({
+      by: ["breedId"],
+      where: { createdAt: { gte: oneWeekAgo } },
+      _count: { _all: true },
+    }),
+    user
+      ? prisma.breedFavorite.findMany({
+          where: {
+            userId: user.id,
+            breed: { isPublished: true },
+          },
+          select: { breedId: true, listType: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const weeklyViewCount = new Map(
+    weeklyViews.map((item) => [item.breedId, item._count._all]),
+  );
+
+  const serialized: BreedForCard[] = breeds.map((breed) => ({
+    id: breed.id,
+    slug: breed.slug,
+    name: breed.name,
+    origin: breed.origin,
+    imageSrc: breed.imageSrc,
+    shortDescription: breed.shortDescription ?? breed.profileSummary,
+    characteristics: breed.characteristics.map(
+      (characteristic) => characteristic.label,
+    ),
+    careLevel: breed.careLevel,
+    activityLevel: breed.activityLevel,
+    coatLength: breed.coatLength,
+    indoorFit: breed.indoorFit,
+    beginnerFitScore: breed.beginnerFitScore,
+    activityScore: breed.activityScore,
+    groomingScore: breed.groomingScore,
+    availability: breed.availability,
+    matchLabel: breed.matchLabel,
+    viewCount: breed.viewCount,
+    weeklyViewCount: weeklyViewCount.get(breed.id) ?? 0,
+    isFeatured: breed.isFeatured,
+  }));
+  const initialFavorites = favorites.reduce<
+    Record<string, BreedFavoriteListType[]>
+  >((result, favorite) => {
+    result[favorite.breedId] = [
+      ...(result[favorite.breedId] ?? []),
+      favorite.listType,
+    ];
+    return result;
+  }, {});
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <section className="grid gap-6 lg:grid-cols-[0.78fr_1.22fr]">
-        <div>
-          <p className="text-sm font-bold text-primary">Galeri ras kucing</p>
-          <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">
-            Bandingkan ras sebelum adopt atau beli
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Setiap ras punya karakter, kebutuhan makan, harga awal, dan biaya perawatan yang
-            berbeda. Bandingkan pilihan yang paling cocok untuk rumahmu, lalu lanjut cek
-            ketersediaan kucing, opsi adopsi, atau kebutuhan awalnya.
-          </p>
+    <main className="mx-auto w-full max-w-[1440px] flex-grow px-4 pb-24 pt-[96px] sm:px-6 md:px-[80px] md:pt-[120px]">
+      <section className="mb-8 max-w-5xl md:mb-10">
+        <p className="eyebrow mb-3">Catpedia by Rumah Kucing</p>
+        <h1 className="mb-5 max-w-4xl font-headline text-[36px] font-extrabold leading-[1.08] text-gradient-brand sm:text-[44px] md:text-[52px]">
+          Temukan ras kucing yang paling cocok untukmu
+        </h1>
+        <p className="max-w-3xl text-[15px] leading-relaxed text-on-surface-variant sm:text-[17px]">
+          Jelajahi karakter, kebutuhan perawatan, kesehatan, dan gaya hidup
+          berbagai ras kucing sebelum memutuskan untuk merawatnya.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link
+            href="/breeds/quiz"
+            className="btn-bounce inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-[14px] font-bold text-white shadow-[0_8px_20px_hsl(var(--primary)/0.18)] hover:bg-primary-container"
+          >
+            Mulai quiz kecocokan
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+          <Link
+            href="/breeds/compare"
+            className="btn-bounce inline-flex h-11 items-center gap-2 rounded-xl border border-primary/25 bg-white px-5 text-[14px] font-bold text-primary hover:bg-primary/5"
+          >
+            Bandingkan ras
+          </Link>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <label className="flex h-12 items-center gap-3 rounded-md border border-input bg-background px-3">
-            <Search className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-              placeholder="Cari British Shorthair, Persian, biaya murah..."
-            />
-          </label>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {["First-time owner", "Budget ramah", "Bulu panjang", "Indoor", "Anak aktif"].map((tag) => (
-              <button
-                type="button"
-                key={tag}
-                className="rounded-md bg-muted px-3 py-2 text-xs font-bold text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
+        <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 text-[13px] font-semibold text-on-surface-variant">
+          <span className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-primary" aria-hidden="true" />
+            {serialized.length} profil ras
+          </span>
+          <span className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-secondary" aria-hidden="true" />
+            Pengetahuan sebelum keputusan
+          </span>
+          <span className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-info" aria-hidden="true" />
+            Panduan edukatif
+          </span>
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-        {catBreedGuides.map((breed) => (
-          <BreedCard key={breed.name} {...breed} />
-        ))}
-      </section>
-
-      <section className="mt-8 rounded-lg border border-border bg-card p-5 shadow-sm">
-        <div className="grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
-          <div>
-            <p className="text-sm font-bold text-primary">Siap pilih kucing?</p>
-            <h2 className="mt-2 text-2xl font-bold">Temukan ras yang cocok sebelum adopt atau beli</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[
-              "Bandingkan karakter dan gaya hidupnya",
-              "Cek estimasi harga serta biaya bulanan",
-              "Tanya stok, adopsi, atau perlengkapan awal"
-            ].map((item) => (
-              <div key={item} className="rounded-md bg-muted p-3">
-                <ShoppingBag className="mb-2 h-4 w-4 text-primary" aria-hidden="true" />
-                <p className="text-sm font-bold leading-5">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Button>
-            <HeartHandshake className="h-4 w-4" aria-hidden="true" />
-            Konsultasi pilihan ras
-          </Button>
-          <Button variant="outline">
-            <ShoppingBag className="h-4 w-4" aria-hidden="true" />
-            Cek kucing tersedia
-          </Button>
-        </div>
-      </section>
-    </div>
+      <BreedsExplorer
+        breeds={serialized}
+        isAuthenticated={Boolean(user)}
+        initialFavorites={initialFavorites}
+      />
+    </main>
   );
 }

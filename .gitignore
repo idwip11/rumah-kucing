@@ -5,6 +5,9 @@ dist
 .env
 .env.local
 .vercel
+.DS_Store
+cookies.txt
+*.tsbuildinfo
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

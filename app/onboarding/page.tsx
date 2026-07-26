@@ -1,11 +1,18 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { Check, ChevronRight, Cat, Home, Scale, Loader2 } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Cat,
+  Home,
+  Scale,
+  CalendarDays,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCatStore } from "@/store/use-cat-store";
 import { useRouter } from "next/navigation";
-import { addCat as addCatServer } from "@/app/actions/cats";
 
 const steps = ["Identitas", "Kondisi", "Kebiasaan"];
 
@@ -14,15 +21,16 @@ export default function OnboardingPage() {
   const addCatLocal = useCatStore((state) => state.addCat);
   const [step, setStep] = useState(0);
   const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "Luna",
     breed: "Maine Coon",
-    age: "1 tahun",
+    estimatedDateOfBirth: "",
     weight: "4.1 kg",
     gender: "Betina",
     sterilized: "Belum",
     lifestyle: "Indoor",
-    note: "Baru adaptasi dengan makanan basah"
+    note: "Baru adaptasi dengan makanan basah",
   });
 
   const progress = useMemo(() => ((step + 1) / steps.length) * 100, [step]);
@@ -38,57 +46,74 @@ export default function OnboardingPage() {
       return;
     }
 
+    setError("");
     setIsPending(true);
     try {
-      // Save to database
-      await addCatServer({
-        name: form.name,
-        breedSlug: form.breed.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-        ageLabel: form.age,
-        weightKg: parseFloat(form.weight.replace(",", ".")) || undefined,
-        gender: form.gender as "Betina" | "Jantan",
-        sterilized: form.sterilized === "Sudah",
-        lifestyle: form.lifestyle as any,
-        notes: form.note
+      const response = await fetch("/api/cats", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          breedSlug: form.breed
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, ""),
+          estimatedDateOfBirth: form.estimatedDateOfBirth || null,
+          weightKg: parseFloat(form.weight.replace(",", ".")) || undefined,
+          gender: form.gender as "Betina" | "Jantan",
+          sterilized: form.sterilized === "Sudah",
+          lifestyle: form.lifestyle as any,
+          notes: form.note,
+        }),
       });
 
-      // Update local zustand store for immediate UI update
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal menyimpan profil kucing");
+      }
+
       addCatLocal({
-        id: form.name.toLowerCase().replace(/\s+/g, "-") || "kucing-baru",
+        id: data.id,
         name: form.name,
         breed: form.breed,
-        age: form.age,
+        age: data.ageLabel ?? "",
+        estimatedDateOfBirth: form.estimatedDateOfBirth || null,
         weight: form.weight,
         gender: form.gender,
         sterilized: form.sterilized === "Sudah",
         lifestyle: form.lifestyle,
-        note: form.note
+        note: form.note,
       });
 
       router.push("/");
-    } catch (error) {
-      console.error(error);
-      alert("Gagal menyimpan profil: " + (error as Error).message);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Gagal menyimpan profil kucing",
+      );
     } finally {
       setIsPending(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 pb-24 pt-24 sm:px-6 md:pb-16 md:pt-28 lg:px-8">
       <div className="mb-6">
-        <p className="text-sm font-bold text-primary">Onboarding profil</p>
-        <h1 className="mt-2 text-3xl font-bold">Buat data dasar kucing</h1>
+        <p className="eyebrow">Onboarding profil</p>
+        <h1 className="mt-2 font-headline text-3xl font-extrabold text-gradient-brand">Buat data dasar kucing</h1>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Data ini menjadi konteks utama untuk Ketty AI, timeline, dan rekomendasi produk yang
-          muncul nanti.
+          Data ini menjadi konteks utama untuk Ketty AI, timeline, dan
+          rekomendasi produk yang muncul nanti.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
-        <aside className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <aside className="premium-card rounded-[24px] p-5 sm:p-6">
           <div className="h-2 rounded-full bg-muted">
-            <div className="h-2 rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
+            <div
+              className="h-2 rounded-full bg-brand-gradient transition-all"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <div className="mt-6 space-y-3">
             {steps.map((label, index) => (
@@ -96,15 +121,19 @@ export default function OnboardingPage() {
                 type="button"
                 key={label}
                 onClick={() => setStep(index)}
-                className="flex w-full items-center gap-3 rounded-md p-3 text-left transition hover:bg-muted"
+                className="flex w-full items-center gap-3 rounded-xl p-3 text-left transition hover:bg-primary/6"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-sm font-bold">
-                  {index < step ? <Check className="h-4 w-4" aria-hidden="true" /> : index + 1}
+                  {index < step ? (
+                    <Check className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    index + 1
+                  )}
                 </span>
                 <span>
                   <span className="block text-sm font-bold">{label}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {index === 0 && "Nama, ras, umur"}
+                    {index === 0 && "Nama, ras, perkiraan tanggal lahir"}
                     {index === 1 && "Berat, steril, jenis kelamin"}
                     {index === 2 && "Gaya hidup dan catatan"}
                   </span>
@@ -114,10 +143,23 @@ export default function OnboardingPage() {
           </div>
         </aside>
 
-        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-5 shadow-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="premium-card rounded-[24px] p-5 sm:p-6"
+        >
+          {error && (
+            <div className="mb-4 rounded-md bg-red-50 p-3">
+              <p className="text-sm font-semibold text-red-900">{error}</p>
+            </div>
+          )}
           {step === 0 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nama kucing" value={form.name} onChange={(value) => updateField("name", value)} icon={Cat} />
+              <Field
+                label="Nama kucing"
+                value={form.name}
+                onChange={(value) => updateField("name", value)}
+                icon={Cat}
+              />
               <Select
                 label="Ras"
                 value={form.breed}
@@ -139,11 +181,35 @@ export default function OnboardingPage() {
                   "Devon Rex & Cornish Rex",
                   "Bengal",
                   "Savannah",
-                  "Domestis / Lokal"
+                  "Domestis / Lokal",
                 ]}
                 onChange={(value) => updateField("breed", value)}
               />
-              <Field label="Umur" value={form.age} onChange={(value) => updateField("age", value)} icon={Home} />
+              <div className="sm:col-span-2">
+                <label className="block">
+                  <span className="text-sm font-bold flex items-center gap-1.5">
+                    <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                    Perkiraan Tanggal Lahir
+                  </span>
+                  <span className="mt-2 flex h-11 items-center gap-2 rounded-md border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring">
+                    <CalendarDays
+                      className="h-4 w-4 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <input
+                      type="date"
+                      className="min-w-0 flex-1 bg-transparent text-sm outline-none"
+                      value={form.estimatedDateOfBirth}
+                      onChange={(event) =>
+                        updateField("estimatedDateOfBirth", event.target.value)
+                      }
+                    />
+                  </span>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Usia akan dihitung secara otomatis.
+                  </p>
+                </label>
+              </div>
               <Select
                 label="Jenis kelamin"
                 value={form.gender}
@@ -155,7 +221,12 @@ export default function OnboardingPage() {
 
           {step === 1 && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Berat badan" value={form.weight} onChange={(value) => updateField("weight", value)} icon={Scale} />
+              <Field
+                label="Berat badan"
+                value={form.weight}
+                onChange={(value) => updateField("weight", value)}
+                icon={Scale}
+              />
               <Select
                 label="Status steril"
                 value={form.sterilized}
@@ -196,7 +267,9 @@ export default function OnboardingPage() {
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {step === steps.length - 1 ? "Simpan profil" : "Lanjut"}
-              {!isPending && <ChevronRight className="h-4 w-4" aria-hidden="true" />}
+              {!isPending && (
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
+              )}
             </Button>
           </div>
         </form>
@@ -209,7 +282,7 @@ function Field({
   label,
   value,
   onChange,
-  icon: Icon
+  icon: Icon,
 }: {
   label: string;
   value: string;
@@ -235,7 +308,7 @@ function Select({
   label,
   value,
   options,
-  onChange
+  onChange,
 }: {
   label: string;
   value: string;

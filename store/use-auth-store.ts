@@ -2,36 +2,62 @@
 
 import { create } from "zustand";
 
+type AuthProfile = {
+  userId: string;
+  userName: string;
+  email: string;
+  phone?: string;
+};
+
 type AuthState = {
   isAuthenticated: boolean;
+  userId: string;
   userName: string;
   email: string;
   phone: string;
-  login: () => void;
-  signup: (profile?: { userName?: string; email?: string }) => void;
+  login: (profile: AuthProfile) => void;
+  signup: (profile: AuthProfile) => void;
   logout: () => void;
-  updateProfile: (profile: { userName: string; email: string; phone: string }) => void;
+  updateProfile: (profile: {
+    userName: string;
+    email: string;
+    phone: string;
+  }) => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: true,
-  userName: "Imam Dwi",
-  email: "imam@example.com",
-  phone: "+62 812-3456-7890",
-  login: () =>
+  isAuthenticated: false,
+  userId: "",
+  userName: "",
+  email: "",
+  phone: "",
+  login: (profile) =>
     set({
       isAuthenticated: true,
-      userName: "Imam Dwi",
-      email: "imam@example.com",
-      phone: "+62 812-3456-7890"
+      userId: profile.userId,
+      userName: profile.userName,
+      email: profile.email,
+      phone: profile.phone ?? "",
     }),
   signup: (profile) =>
     set({
       isAuthenticated: true,
-      userName: profile?.userName || "Pengguna Baru",
-      email: profile?.email || "user@example.com",
-      phone: ""
+      userId: profile.userId,
+      userName: profile.userName,
+      email: profile.email,
+      phone: profile.phone ?? "",
     }),
-  logout: () => set({ isAuthenticated: false }),
-  updateProfile: (profile) => set(profile)
+  logout: () =>
+    set({
+      isAuthenticated: false,
+      userId: "",
+      userName: "",
+      email: "",
+      phone: "",
+    }),
+  updateProfile: (profile) =>
+    set({
+      ...profile,
+      isAuthenticated: true,
+    }),
 }));

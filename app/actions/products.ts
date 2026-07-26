@@ -6,6 +6,10 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeProductTag,
+  uniqueDisplayProductTags,
+} from "@/lib/product-tags";
 
 export async function getProducts(options?: {
   category?: string;
@@ -15,6 +19,7 @@ export async function getProducts(options?: {
   limit?: number;
 }) {
   const { category, tag, sortBy = "newest", page = 1, limit = 12 } = options ?? {};
+  const normalizedTag = normalizeProductTag(tag);
 
   const orderBy =
     sortBy === "cheapest"
@@ -27,7 +32,7 @@ export async function getProducts(options?: {
     where: {
       isActive: true,
       ...(category ? { category } : {}),
-      ...(tag ? { tags: { some: { tag } } } : {}),
+      ...(normalizedTag ? { tags: { some: { tag: normalizedTag } } } : {}),
     },
     include: { tags: true },
     orderBy,
@@ -49,5 +54,5 @@ export async function getAllProductTags() {
     distinct: ["tag"],
     select: { tag: true },
   });
-  return tags.map((t) => t.tag);
+  return uniqueDisplayProductTags(tags.map((t) => t.tag));
 }

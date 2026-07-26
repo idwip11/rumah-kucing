@@ -1,34 +1,192 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Star, ArrowLeft, Heart, Repeat, ZoomIn, Image as ImageIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Image as ImageIcon } from "lucide-react";
+import { ProductsToolbar } from "@/components/products-toolbar";
+import {
+  buildProductTagOptions,
+  normalizeProductTag,
+} from "@/lib/product-tags";
 
-const MOCK_PRODUCTS = [
-  { id: 1, title: "Feeding Kit I - Set Botol Dot Susu Kucing & Anjing", price: "Rp43.000", rating: 0 },
-  { id: 2, title: "Captain Cat Dry Food Chicken Tuna Repack 800gr", price: "Rp23.000", rating: 0 },
-  { id: 3, title: "Top Growth Milk 1 Box - Susu Pertumbuhan Anak Kucing", price: "Rp52.000", rating: 0 },
-  { id: 4, title: "Remov Mother & Baby Vitamin 30 Kapsul - Jaga Kesehatan", price: "Rp17.000", rating: 0 },
-  { id: 5, title: "Catto Plus Jelly 70gr - Makanan Basah Anak Kucing", price: "Rp10.500", rating: 0 },
-  { id: 6, title: "Catto Indoor Dry Food 1.5kg - Kontrol Hairball", price: "Rp75.000", rating: 4 },
-  { id: 7, title: "LOLA & CO Healthy Gut 80gr - Pencernaan Sehat", price: "Rp7.000", rating: 0 },
-  { id: 8, title: "LOLA & CO Tuna Kanikama 80gr - Snack Basah", price: "Rp7.000", rating: 0 },
-  { id: 9, title: "Whiskas Junior Ocean Fish 1.1kg - Nutrisi Lengkap", price: "Rp65.000", rating: 5 },
-  { id: 10, title: "Royal Canin Hair & Skin 2kg", price: "Rp250.000", rating: 5 },
-  { id: 11, title: "Me-O Creamy Treats Salmon & Tuna", price: "Rp20.000", rating: 4 },
-  { id: 12, title: "Catnip Toy Fish 20cm - Mainan Gigit Interaktif", price: "Rp15.000", rating: 0 },
-];
+export const dynamic = "force-dynamic";
 
-const TAGS = [
-  "Makanan Kucing", "Dry Food", "perawatan hewan", "Dry Food Premium",
-  "Food/Dry Food/Premium Cat Dry", "Wet Food", "dry", "perawatan kandang",
-  "Snack", "Medicines/Obat"
-];
+const formatPrice = (value: number) =>
+  new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(value);
+
+interface Product {
+  id: string;
+  name: string;
+  category: string | null;
+  priceIdr: number;
+  imageUrl: string | null;
+  tags: Array<{ id: string; tag: string }>;
+}
+
+interface TagOption {
+  value: string;
+  label: string;
+}
+
+interface ProductsResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  tags: TagOption[];
+}
+
+const PAGE_SIZE = 20;
+
+function PaginationControls({
+  currentPage,
+  totalPages,
+  baseUrl,
+}: {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+}) {
+  if (totalPages <= 1) return null;
+
+  const pages: (number | string)[] = [];
+
+  pages.push(1);
+  if (currentPage > 3) pages.push("...");
+
+  for (
+    let i = Math.max(2, currentPage - 1);
+    i <= Math.min(totalPages - 1, currentPage + 1);
+    i++
+  ) {
+    pages.push(i);
+  }
+
+  if (currentPage < totalPages - 2) pages.push("...");
+  if (totalPages > 1) pages.push(totalPages);
+
+  return (
+    <div className="mt-8 flex items-center justify-center gap-2">
+      {/* Previous button */}
+      <Link
+        href={currentPage > 1 ? `${baseUrl}?page=${currentPage - 1}` : baseUrl}
+        className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+          currentPage === 1
+            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+            : "border-border bg-card text-muted-foreground hover:bg-muted"
+        }`}
+      >
+        ← Previous
+      </Link>
+
+      {/* Page numbers */}
+      <div className="flex gap-1">
+        {pages.map((page, index) =>
+          typeof page === "string" ? (
+            <span
+              key={`ellipsis-${index}`}
+              className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-sm text-muted-foreground"
+            >
+              ...
+            </span>
+          ) : (
+            <Link
+              key={page}
+              href={`${baseUrl}?page=${page}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-md border text-sm font-medium transition-colors ${
+                page === currentPage
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {page}
+            </Link>
+          ),
+        )}
+      </div>
+
+      {/* Next button */}
+      <Link
+        href={
+          currentPage < totalPages
+            ? `${baseUrl}?page=${currentPage + 1}`
+            : baseUrl
+        }
+        className={`rounded-md border px-4 py-2 text-sm font-medium transition-colors ${
+          currentPage === totalPages
+            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
+            : "border-border bg-card text-muted-foreground hover:bg-muted"
+        }`}
+      >
+        Next →
+      </Link>
+    </div>
+  );
+}
 
 export default function ProductsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [productsData, setProductsData] = useState<ProductsResponse | null>(
+    null,
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const tag = searchParams.get("tag") || "";
+  const sort = searchParams.get("sort") || "";
+
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(PAGE_SIZE));
+    if (tag) params.set("tag", tag);
+    if (sort) params.set("sort", sort);
+
+    try {
+      const response = await fetch(`/api/products?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to load products");
+      }
+      const data: ProductsResponse = await response.json();
+      setProductsData(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, tag, sort]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  const totalPages = productsData
+    ? Math.ceil(productsData.total / PAGE_SIZE)
+    : 0;
+
+  // Build base URL without page param for pagination
+  const baseParams = new URLSearchParams();
+  if (tag) baseParams.set("tag", tag);
+  if (sort) baseParams.set("sort", sort);
+  const baseUrl = `/explore/products${baseParams.toString() ? `?${baseParams.toString()}` : ""}`;
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Breadcrumb / Back */}
+    <div className="mx-auto max-w-7xl px-4 pb-24 pt-24 sm:px-6 md:pb-16 md:pt-28 lg:px-8">
       <div className="mb-6">
-        <Link href="/explore" className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground">
+        <Link
+          href="/explore"
+          className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Kembali ke Explore
         </Link>
@@ -36,39 +194,34 @@ export default function ProductsPage() {
 
       <div className="flex flex-col gap-8 md:flex-row">
         {/* Sidebar Filters */}
-        <aside className="w-full shrink-0 space-y-8 md:w-64">
-          <div>
-            <h3 className="mb-4 text-lg font-bold">Filter Harga</h3>
-            <div className="space-y-4">
-              <div className="relative h-1 w-full rounded-full bg-muted">
-                <div className="absolute left-0 h-1 w-full rounded-full bg-blue-500"></div>
-                <div className="absolute -ml-2 -mt-1.5 left-0 h-4 w-4 rounded-full border-2 border-blue-500 bg-white shadow"></div>
-                <div className="absolute -mr-2 -mt-1.5 right-0 h-4 w-4 rounded-full border-2 border-blue-500 bg-white shadow"></div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Harga: Rp4.800 — Rp624.500</span>
-                <Button size="sm" variant="default" className="h-8 rounded-full bg-blue-500 text-white hover:bg-blue-600">Saring</Button>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="mb-4 text-lg font-bold">Brands</h3>
-            <select className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none focus:ring-1 focus:ring-primary">
-              <option>Pilih Brand</option>
-            </select>
-          </div>
-
+        <aside className="hidden md:block w-full shrink-0 space-y-8 md:w-64">
           <div>
             <h3 className="mb-4 text-lg font-bold">Tag Produk</h3>
             <div className="flex flex-wrap gap-2">
-              {TAGS.map((tag) => (
-                <button
-                  key={tag}
-                  className="rounded-full border border-border bg-transparent px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+              <Link
+                href={`/explore/products${sort ? `?sort=${sort}` : ""}`}
+                className={
+                  "rounded-full border px-3 py-1.5 text-xs transition-colors " +
+                  (!tag
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-transparent text-muted-foreground hover:bg-muted")
+                }
+              >
+                Semua
+              </Link>
+              {productsData?.tags.map((t) => (
+                <Link
+                  key={t.value}
+                  href={`/explore/products?tag=${encodeURIComponent(t.value)}${sort ? `&sort=${sort}` : ""}`}
+                  className={
+                    "rounded-full border px-3 py-1.5 text-xs transition-colors " +
+                    (tag === t.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-transparent text-muted-foreground hover:bg-muted")
+                  }
                 >
-                  {tag}
-                </button>
+                  {t.label}
+                </Link>
               ))}
             </div>
           </div>
@@ -76,64 +229,98 @@ export default function ProductsPage() {
 
         {/* Main Content */}
         <main className="flex-1">
-          {/* Top Bar */}
-          <div className="mb-6 flex flex-col justify-between gap-4 border-b border-border pb-4 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <select className="cursor-pointer bg-transparent py-1 pl-2 pr-8 text-sm outline-none hover:text-foreground focus:ring-0">
-                  <option>Urutkan menurut yang terbaru</option>
-                  <option>Urutkan dari termurah</option>
-                  <option>Urutkan dari termahal</option>
-                </select>
-              </div>
-            </div>
+          <ProductsToolbar
+            tags={productsData?.tags || []}
+            activeTag={tag}
+            activeSort={sort}
+          />
+
+          <div className="mb-6 mt-6 flex items-center justify-between border-b border-border pb-4">
             <div className="text-sm text-muted-foreground">
-              Menampilkan 1–12 dari 34 hasil
+              {loading ? (
+                "Memuat..."
+              ) : productsData ? (
+                <>
+                  Menampilkan {(page - 1) * PAGE_SIZE + 1}-
+                  {Math.min(page * PAGE_SIZE, productsData.total)} dari{" "}
+                  {productsData.total} produk
+                </>
+              ) : (
+                "Memuat..."
+              )}
             </div>
           </div>
 
-          {/* Product Grid */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {MOCK_PRODUCTS.map((product) => (
-              <div key={product.id} className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:shadow-md">
-                {/* Image Placeholder */}
-                <div className="relative aspect-square w-full bg-muted/30 p-4">
-                  <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-background text-muted-foreground/40">
-                    <ImageIcon className="h-10 w-10" />
-                  </div>
-                  
-                  {/* Hover Actions */}
-                  <div className="absolute right-2 top-2 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-sm hover:bg-blue-50 hover:text-blue-500">
-                      <Heart className="h-4 w-4" />
-                    </button>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-sm hover:bg-blue-50 hover:text-blue-500">
-                      <Repeat className="h-4 w-4" />
-                    </button>
-                    <button className="flex h-8 w-8 items-center justify-center rounded-full bg-background shadow-sm hover:bg-blue-50 hover:text-blue-500">
-                      <ZoomIn className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
+          {error && (
+            <p className="mb-4 rounded-md bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </p>
+          )}
 
-                {/* Product Info */}
-                <div className="flex flex-1 flex-col p-4">
-                  <div className="mb-2 text-lg font-bold text-blue-500">{product.price}</div>
-                  <h3 className="mb-2 flex-1 text-sm font-medium leading-snug line-clamp-2 hover:text-blue-500 cursor-pointer">
-                    {product.title}
-                  </h3>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <div className="flex text-amber-400">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star key={star} className={`h-3 w-3 ${star <= product.rating ? "fill-current" : "text-muted"}`} />
-                      ))}
-                    </div>
-                    <span className="ml-1">({product.rating} reviews)</span>
-                  </div>
+          {loading ? (
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse overflow-hidden rounded-xl border border-border bg-card p-4"
+                >
+                  <div className="mb-3 aspect-square w-full rounded-lg bg-muted" />
+                  <div className="mb-2 h-5 w-3/4 rounded bg-muted" />
+                  <div className="h-4 w-1/2 rounded bg-muted" />
                 </div>
+              ))}
+            </div>
+          ) : productsData?.products.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Belum ada produk pada filter ini.
+            </p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {productsData?.products.map((product) => (
+                  <Link
+                    key={product.id}
+                    href={`/explore/products/${product.id}`}
+                    className="premium-card card-hover group relative flex flex-col overflow-hidden rounded-[20px]"
+                  >
+                    <div className="relative aspect-square w-full bg-muted/30 p-4">
+                      {product.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="h-full w-full rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/20 bg-background text-muted-foreground/40">
+                          <ImageIcon className="h-10 w-10" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex flex-1 flex-col p-4">
+                      <div className="mb-2 text-lg font-extrabold text-secondary">
+                        {formatPrice(product.priceIdr)}
+                      </div>
+                      <h3 className="mb-2 line-clamp-2 flex-1 text-sm font-semibold leading-snug transition-colors group-hover:text-primary">
+                        {product.name}
+                      </h3>
+                      {product.category && (
+                        <span className="text-xs text-muted-foreground">
+                          {product.category}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
               </div>
-            ))}
-          </div>
+
+              <PaginationControls
+                currentPage={page}
+                totalPages={totalPages}
+                baseUrl={baseUrl}
+              />
+            </>
+          )}
         </main>
       </div>
     </div>

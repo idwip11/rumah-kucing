@@ -7,11 +7,13 @@ export type CatProfile = {
   name: string;
   breed: string;
   age: string;
+  estimatedDateOfBirth?: string | null;
   weight: string;
   gender: string;
   sterilized: boolean;
   lifestyle: string;
   note: string;
+  photoUrl?: string | null;
 };
 
 type CatState = {
@@ -45,6 +47,8 @@ export const useCatStore = create<CatState>((set, get) => ({
   activeCat: () => {
     const state = get();
     if (state.cats.length === 0) return null;
-    return state.cats.find((cat) => cat.id === state.activeCatId) ?? state.cats[0];
+    return (
+      state.cats.find((cat) => cat.id === state.activeCatId) ?? state.cats[0]
+    );
   },
 }));

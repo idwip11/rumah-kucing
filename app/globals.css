@@ -3,41 +3,502 @@
 @tailwind utilities;
 
 :root {
-  --background: 42 42% 97%;
-  --foreground: 202 27% 15%;
+  --background: 32 55% 98%;
+  --foreground: 168 18% 17%;
   --card: 0 0% 100%;
-  --card-foreground: 202 27% 15%;
-  --primary: 176 56% 28%;
+  --card-foreground: 168 18% 17%;
+  --primary: 160 34% 31%;
+  --primary-container: 158 29% 43%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 211 36% 92%;
-  --secondary-foreground: 202 27% 18%;
-  --muted: 42 28% 92%;
-  --muted-foreground: 202 12% 42%;
-  --accent: 14 79% 62%;
+  --secondary: 338 39% 46%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 31 32% 94%;
+  --muted-foreground: 168 8% 40%;
+  --accent: 14 82% 62%;
   --accent-foreground: 0 0% 100%;
-  --destructive: 0 72% 51%;
+  --destructive: 350 58% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 37 22% 84%;
-  --input: 37 22% 84%;
-  --ring: 176 56% 32%;
+  --border: 28 26% 86%;
+  --input: 28 26% 82%;
+  --ring: 160 34% 31%;
+  --success: 151 47% 39%;
+  --warning: 37 82% 47%;
+  --info: 216 55% 54%;
+  --rose: 344 62% 92%;
+  --honey: 42 88% 89%;
+  --lavender: 258 49% 93%;
 }
 
 * {
   border-color: hsl(var(--border));
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   min-width: 320px;
+  max-width: 100vw;
+  overflow-x: hidden;
   background:
-    linear-gradient(180deg, rgba(248, 246, 239, 0.88), rgba(248, 246, 239, 1) 360px),
-    hsl(var(--background));
+    linear-gradient(180deg, hsl(var(--rose) / 0.28) 0, transparent 310px),
+    linear-gradient(125deg, hsl(var(--background)) 0%, #fffdfa 52%, #fff8f7 100%);
   color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 ::selection {
-  background: hsl(var(--accent) / 0.25);
+  background: hsl(var(--secondary) / 0.2);
+  color: hsl(var(--foreground));
+}
+
+:focus-visible {
+  outline: 3px solid hsl(var(--ring) / 0.25);
+  outline-offset: 3px;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    border-color: hsl(var(--input));
+    background-color: hsl(var(--card) / 0.92);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus,
+  textarea:focus,
+  select:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.1);
+    background-color: hsl(var(--card));
+  }
+}
+
+@layer components {
+  .card-hover {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms ease,
+      border-color 220ms ease;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    border-color: hsl(var(--primary) / 0.22);
+    box-shadow:
+      0 2px 8px hsl(var(--foreground) / 0.04),
+      0 20px 44px hsl(var(--secondary) / 0.11);
+  }
+
+  .btn-bounce {
+    transition:
+      transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .btn-bounce:hover {
+    transform: translateY(-2px);
+  }
+
+  .btn-bounce:active {
+    transform: scale(0.97);
+  }
+
+  .premium-card {
+    border: 1px solid hsl(var(--border) / 0.82);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 253, 251, 0.96));
+    box-shadow:
+      0 1px 2px hsl(var(--foreground) / 0.03),
+      0 12px 34px hsl(var(--secondary) / 0.07);
+  }
+
+  .soft-panel {
+    border: 1px solid hsl(var(--border) / 0.7);
+    background:
+      linear-gradient(135deg, hsl(var(--rose) / 0.38), hsl(var(--honey) / 0.24) 48%, hsl(var(--lavender) / 0.34));
+  }
+
+  .eyebrow {
+    color: hsl(var(--secondary));
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(var(--muted));
+  }
+
+  .skeleton-shimmer::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--card) / 0.72),
+      transparent
+    );
+    animation: shimmer 1.45s infinite;
+  }
+}
+
+/* Touch-friendly interactive elements */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+
+  /* Ensure minimum touch target size of 44px */
+  button:not(:has(.material-symbols-outlined)),
+  a.btn-mobile-full,
+  .touch-target-min {
+    min-height: 44px;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .text-gradient-brand {
+    background: linear-gradient(
+      110deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--secondary)) 65%,
+      hsl(var(--accent)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+main > * {
+  animation: page-in 440ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Markdown content styling for product descriptions */
+.markdown-content p {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content strong,
+.markdown-content b {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.markdown-content em,
+.markdown-content i {
+  font-style: italic;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  list-style-type: decimal;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content code {
+  background-color: hsl(var(--muted));
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.875em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.markdown-content pre {
+  background-color: hsl(var(--muted));
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content pre code {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.markdown-content blockquote {
+  border-left: 3px solid hsl(var(--border));
+  padding-left: 1rem;
+  margin-bottom: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border));
+  margin: 1rem 0;
+}
+
+.markdown-content a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.markdown-content th {
+  background-color: hsl(var(--muted));
+  font-weight: 600;
+}
+
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+/* Mobile header adjustments */
+@media (max-width: 768px) {
+  /* Reduce body gradient height on mobile */
+  body {
+    background:
+      linear-gradient(180deg, hsl(var(--rose) / 0.24) 0, transparent 210px),
+      hsl(var(--background));
+  }
+
+  /* Prevent horizontal scroll on mobile */
+  main,
+  .min-h-screen {
+    min-width: auto;
+    overflow-x: hidden;
+  }
+
+  /* Make images responsive */
+  img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* Scale down large fonts for mobile */
+  h1 {
+    font-size: clamp(24px, 6vw, 40px) !important;
+    line-height: 1.15 !important;
+  }
+
+  h2 {
+    font-size: clamp(20px, 5vw, 26px) !important;
+  }
+
+  h3 {
+    font-size: clamp(16px, 4vw, 18px) !important;
+  }
+
+  /* Responsive card padding - handled by Tailwind responsive utilities */
+  /* Responsive rounded corners - handled by Tailwind responsive utilities */
+
+  /* Product grid: 2 columns on mobile (default, no override needed) */
+
+  /* Hero section mobile adjustments - handled by flex-col default */
+
+  /* Reduce gaps on mobile */
+
+  /* Reduce gaps on mobile */
+  .gap-8 {
+    gap: 1rem !important;
+  }
+
+  .gap-10 {
+    gap: 1.25rem !important;
+  }
+
+  /* Mobile pagination */
+  .mt-8 {
+    margin-top: 1.5rem !important;
+  }
+
+  /* Make pagination buttons touch-friendly */
+  .pagination-btn {
+    min-height: 44px;
+    padding: 0.5rem 1rem !important;
+  }
+
+  /* Scrollable tag chips horizontally on mobile */
+  .tags-scroll-mobile {
+    display: flex !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.5rem;
+  }
+
+  .tags-scroll-mobile::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tags-scroll-mobile > * {
+    flex-shrink: 0;
+  }
+
+  /* Mobile form inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    width: 100%;
+    min-height: 44px;
+  }
+
+  /* Mobile table scrolling */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+
+  .table-responsive table {
+    min-width: 500px;
+  }
+
+  /* Mobile-safe area support for notched devices */
+  @supports (padding: max(0px)) {
+    .safe-top {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+    .safe-bottom {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    .safe-left {
+      padding-left: max(1rem, env(safe-area-inset-left));
+    }
+    .safe-right {
+      padding-right: max(1rem, env(safe-area-inset-right));
+    }
+  }
+}
+
+/* Small mobile (iPhone SE, etc.) */
+@media (max-width: 375px) {
+  h1 {
+    font-size: 22px !important;
+  }
+
+  h2 {
+    font-size: 18px !important;
+  }
+
+  h3 {
+    font-size: 16px !important;
+  }
+
+  .grid-cols-2 {
+    gap: 0.75rem !important;
+  }
+
+  .p-6 {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Tablet breakpoint - Tailwind handles these via md: and lg: utilities */
+
+/* Print styles */
+@media print {
+  header,
+  footer,
+  nav,
+  .no-print {
+    display: none !important;
+  }
 }
